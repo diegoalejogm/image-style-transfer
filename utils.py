@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
+from torch.autograd import Variable
+import torch
 
 IMAGES_PATH = './images'
 
 
-def load_image(path, max_size=None, shape=None):
+def load_image(path, max_size=None, shape=None, display=True):
     '''
     Returns numpy array containing image data
     '''
@@ -25,8 +27,26 @@ def load_image(path, max_size=None, shape=None):
     # Convert image to numpy array
     arr = np.array(img)
 
+    # Display image
+    if display:
+        display_image(arr)
+
     # Return numpy array
     return arr
+
+
+def image_to_var(arr):
+    '''
+    Convert 3D numpy image to 4D PyTorch Variable
+    '''
+    # Reformat array WHC to CWH
+    arr = np.moveaxis(arr, 2, 0)
+    # Convert to float Tensor
+    tensor = torch.from_numpy(arr).float()
+    # Reformat add 4th dimension N: CWH to NCWH
+    tensor = tensor.unsqueeze(0)
+    # Convert to Variable
+    return Variable(tensor)
 
 
 def display_image(arr):

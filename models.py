@@ -32,7 +32,7 @@ class ModifiedVGG(nn.Module):
         self.relu3_3 = m[15]
         self.conv3_4 = m[16]
         self.relu3_4 = m[17]
-        self.a_pool1 = self.pool(m[18])
+        self.a_pool3 = self.pool(m[18])
 
         # Conv. 4
         self.conv4_1 = m[19]
@@ -56,7 +56,7 @@ class ModifiedVGG(nn.Module):
         self.relu5_4 = m[35]
         self.a_pool5 = self.pool(m[36])
 
-    def forward(x):
+    def forward(self, x):
         # Conv1
         conv1_1 = self.conv1_1(x)
         x = self.relu1_1(conv1_1)
