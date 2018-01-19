@@ -49,7 +49,67 @@ def image_to_var(arr):
     return Variable(tensor)
 
 
-def display_image(arr):
+def display_image(arr, format='HWC'):
+    '''
+    Displays image from numpy array using MatplotLib
+    '''
+    if format == 'CHW':
+        arr = np.moveaxis(arr, 0, -1)
     plt.close()
     plt.figure()
     plt.imshow(arr)
+
+
+def gram_matrices(list):
+    '''
+    Computes the gram matrices of list of 4-D (NCWH) Convolved Tensors.
+    '''
+    new_list = []
+    for tensor in list:
+        new_list.append(_gram_matrix(tensor))
+    return new_list
+
+
+def _gram_matrix(tensor):
+    '''
+    Computes the gram matrix of a 4-D (NCWH) Convolved Tensor.
+    '''
+    # Here N is num_tensors, no num_feature_maps as in the paper
+    N = tensor.size(0)
+    # Here C is num_feature_maps
+    C = tensor.size(1)
+    # Merge height and width dimensions into M: new shape: NCM
+    tensor = tensor.view(N * C, -1)
+    # Calculate transposed tensor
+    tensor_T = tensor.transpose(0, 1)
+    # Calculate Gram matrix as tensor_T * tensor
+    tensor = torch.mm(tensor, tensor_T)
+    return tensor
+
+
+def style_loss(criterion, target_style, noise_style):
+    '''
+    Calculates the style loss given a loss criterion
+    '''
+    loss = 0
+    num_layers = len(target_style)
+    w = 1. / num_layers
+    for i, _ in enumerate(target_style):
+        style_i = target_style[i].detach()
+        noise_i = noise_style[i]
+        loss_i = criterion(noise_i, style_i) / w
+        loss += loss_i
+    return loss
+
+
+def content_loss(criterion, target_content, noise_content):
+    '''
+    Calculates the content loss given a loss criterion
+    '''
+    loss = 0
+    for i, _ in enumerate(target_content):
+        content_i = target_content[i].detach()
+        noise_i = noise_content[i]
+        loss_i = criterion(noise_i, content_i)
+        loss += loss_i
+    return loss
