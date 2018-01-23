@@ -113,7 +113,7 @@ class ModifiedVGG(nn.Module):
             'conv5_1': conv5_1, 'conv5_2': conv5_2,
             'conv5_3': conv5_3, 'conv5_4': conv5_4,
         }
-        return x, returns
+        return returns
 
     def pool(self, max_pool):
         return nn.AvgPool2d(kernel_size=max_pool.kernel_size,
