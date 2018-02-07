@@ -1,2 +1,2 @@
 # image-style-transfer
-Image Style Transfer Using Convolutional Neural Networks: https://goo.gl/NX1phe
+PyTorch implementation of Image Style Transfer Using Convolutional Neural Networks. [paper](https://goo.gl/NX1phe)
