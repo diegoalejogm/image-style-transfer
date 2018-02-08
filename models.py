@@ -55,6 +55,9 @@ class ModifiedVGG(nn.Module):
         self.conv5_4 = m[34]
         self.relu5_4 = m[35]
         self.a_pool5 = self.pool(m[36])
+        
+        if torch.cuda.is_available():
+            self.cuda()
 
     def forward(self, x):
         # Conv1

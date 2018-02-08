@@ -4,6 +4,8 @@ import numpy as np
 from torch.autograd import Variable
 from torchvision import transforms
 import torch
+import os
+import errno
 
 IMAGES_PATH = './images'
 
@@ -36,14 +38,16 @@ def load_image(path, max_size=None, shape=None, display=True):
     return tensor
 
 
-def tensor_to_4d_var(tensor, requires_grad=False, cuda=False):
+def tensor_to_4d_var(tensor, requires_grad=False):
     '''
     Return image tensor with additional dimension N, as Variable
     '''
-    var = Variable(tensor.unsqueeze(0), requires_grad=requires_grad)
+    tensor = tensor.unsqueeze(0)
 
-    if cuda:
-        var = var.cuda()
+    if torch.cuda.is_available():
+        tensor = tensor.cuda()
+
+    var = Variable(tensor, requires_grad=requires_grad)
     return var
 
 
@@ -53,7 +57,7 @@ def display_image(tensor, format='HWC'):
     '''
     # Reset plot
     plt.close()
-    plt.figure()
+    plt.figure(dpi=120)
 
     if (len(tensor.size()) > 3):
         # Remove the batch dimension
@@ -61,7 +65,7 @@ def display_image(tensor, format='HWC'):
     # Load image
     img = transforms.ToPILImage()(tensor.clone().cpu())
     # Show image
-    plt.imshow(img)
+    plt.imshow(img, aspect='auto')
     plt.show()
 
 
@@ -89,7 +93,8 @@ def _gram_matrix(tensor):
     # Calculate Gram matrix as tensor_T * tensor
     tensor = torch.mm(tensor, tensor_T)
     # print(C * W * H)
-    return tensor / (N * W * H) # (4 * N**2 * (W * H)**2)
+    return tensor / (4. * N**2. * (W * H)**2.) #(N * W * H)   
+
 
 def content_loss(criterion, target_content, input_content):
     '''
@@ -98,10 +103,12 @@ def content_loss(criterion, target_content, input_content):
     loss = 0
     for i, _ in enumerate(target_content):
         input_i = input_content[i]
-        content_i = tensor_to_4d_var(target_content[i].data, requires_grad=False)
+        content_i = tensor_to_4d_var(
+            target_content[i].data, requires_grad=False)
         loss_i = criterion(input_i, content_i)
         loss += loss_i
     return loss
+
 
 def preprocess(tensor):
     """
@@ -114,7 +121,8 @@ def preprocess(tensor):
     t[1, :, :] -= mean[1]
     t[2, :, :] -= mean[2]
     return t
-    
+
+
 def postprocess(var, clip_min, clip_max):
     """
     Add ImageNet mean pixel-wise from a RGB image.
@@ -126,15 +134,16 @@ def postprocess(var, clip_min, clip_max):
     var.data[:, 1, :, :] += mean[1]
     var.data[:, 2, :, :] += mean[2]
 
+
 def clip_preprocessed(var, min_val, max_val):
     """
     Clips an image to the input values using the preprocessed mean.
     """
     mean = [0.485, 0.456, 0.406]
-    var[:, 0, :, :].data.clamp_(min_val-mean[0], max_val-mean[0])
-    var[:, 1, :, :].data.clamp_(min_val-mean[1], max_val-mean[1])
-    var[:, 2, :, :].data.clamp_(min_val-mean[2], max_val-mean[2])
-    
+    var[:, 0, :, :].data.clamp_(min_val - mean[0], max_val - mean[0])
+    var[:, 1, :, :].data.clamp_(min_val - mean[1], max_val - mean[1])
+    var[:, 2, :, :].data.clamp_(min_val - mean[2], max_val - mean[2])
+
 
 def style_loss(criterion, target_styles, input_styles):
     '''
@@ -148,3 +157,20 @@ def style_loss(criterion, target_styles, input_styles):
         loss_i = criterion(input_i, style_i) * layer_weight
         loss += loss_i
     return loss
+
+
+def _save_image(tensor, step):
+    out_dir = './data/images'
+    _make_dir(out_dir)
+
+    tensor = tensor.clone().cpu()[0]
+    im = transforms.ToPILImage()(tensor)
+    im.save('{}/step_{}.jpg'.format(out_dir, step))
+
+
+def _make_dir(directory):
+    try:
+        os.makedirs(directory)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
