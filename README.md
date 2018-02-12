@@ -1,4 +1,4 @@
-# image-style-transfer
+# neural-style-transfer
 
 <img src='.assets/result.png' width=600>
 
